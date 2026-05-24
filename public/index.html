@@ -956,6 +956,9 @@ function switchToControl(){
 function autoDetect(){
   const p=new URLSearchParams(window.location.search);
   const room=(p.get('room')||localStorage.getItem('wsRoom')||genRoom()).toUpperCase();
+  wsRoom=room;
+  localStorage.setItem('wsRoom',room);
+  updateConnBadge(); // afficher immédiatement sans attendre WS
   if(p.has('display')||p.has('tv')){
     switchToDisplay();
     wsConnect(room,'display');
