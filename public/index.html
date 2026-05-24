@@ -867,6 +867,11 @@ let S = {
 ═══════════════════════════════════════════ */
 // ── WebSocket Transport ──
 let ws=null, wsRoom='', wsRole='control', wsReconnTimer=null, lastPayload=null;
+// ── Stubs compatibilité (variables référencées dans le code original) ──
+let connMode='local', mqttClient=null, mqttRoom='', mqttReconnTimer=null;
+let localChannel=null, displayPopup=null;
+let peerInst=null, peerConns=[], myPeerId='';
+
 function genRoom(){return 'PROJ_'+(Math.random().toString(36).slice(2,7)).toUpperCase();}
 function wsConnect(room,role){
   if(ws){try{ws.close();}catch(e){}}
@@ -2507,12 +2512,9 @@ async function init(){
     if(camSec)camSec.style.display='block';
   }
 
-  // Init connexion selon mode sauvegardé
-  const savedRoom=localStorage.getItem('mqttRoom')||genRoom();
-  mqttRoom=savedRoom;
-
+  // Init connexion WebSocket
   autoDetect();
-    // Keyboard shortcuts
+  // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
     if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();navNext();}
