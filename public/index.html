@@ -894,9 +894,26 @@ function setWsUi(state){
 function updateConnBadge(){const rid=document.getElementById('room-id-display');if(rid)rid.textContent=wsRoom||'—';}
 function openDisplayPopup(){window.open(location.origin+'?display&room='+encodeURIComponent(wsRoom),'_blank','width=1280,height=720,menubar=no,toolbar=no');}
 function copyPeerUrl(){const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);navigator.clipboard.writeText(url).then(()=>showToast('✅ '+url,'success',4000)).catch(()=>prompt('URL display:',url));}
-function showRoomModal(){const ri=document.getElementById('room-input');if(ri)ri.value=wsRoom;const lu=document.getElementById('local-url-disp');if(lu)lu.value=location.origin+'?display&room='+encodeURIComponent(wsRoom);openModal('room-modal');}
+function showRoomModal(){
+  const ri=document.getElementById('room-input');if(ri)ri.value=wsRoom;
+  const lu=document.getElementById('local-url-disp');if(lu)lu.value=location.origin+'?display&room='+encodeURIComponent(wsRoom);
+  const mpi=document.getElementById('my-peer-id');if(mpi)mpi.textContent=wsRoom;
+  const mcc=document.getElementById('modal-current-room');if(mcc)mcc.textContent=wsRoom;
+  setConnMode(localStorage.getItem('connMode')||'local');
+  openModal('room-modal');
+}
 function applyPeerEntry(){const id=document.getElementById('peer-entry-input').value.trim().toUpperCase();if(!id)return;document.getElementById('peer-entry-overlay').classList.add('hidden');switchToDisplay();wsConnect(id,'display');}
-function setConnMode(m){}
+function setConnMode(m){
+  connMode=m; localStorage.setItem('connMode',m);
+  ['local','peer','mqtt'].forEach(id=>{
+    const el=document.getElementById('cm-'+id);
+    if(el) el.classList.toggle('active',id===m);
+  });
+  ['local','peer','mqtt'].forEach(id=>{
+    const el=document.getElementById('cmp-'+id);
+    if(el) el.classList.toggle('hidden',id!==m);
+  });
+}
 function destroyPeer(){}
 function initPeer(){}
 function updatePeerClientsInfo(){}
@@ -970,90 +987,6 @@ function switchToControl(){
   document.getElementById('btn-mode-disp').classList.remove('active');
   document.getElementById('btn-mode-ctrl').classList.add('active');
 }
-function autoDetect(){
-  const p=new URLSearchParams(window.location.search);
-  if(p.has('display')||p.has('tv')||p.has('screen')){
-    switchToDisplay();
-    // BroadcastChannel (LOCAL / HDMI)
-    try{
-      localChannel=new BroadcastChannel('wsc_local');
-      localChannel.onmessage=e=>{try{handleMqttMsg(e.data);}catch(err){}};
-    }catch(e){}
-    // Écouter postMessage (fenêtre popup depuis régie)
-    window.addEventListener('message',e=>{
-      if(e.data&&e.data.wsc){
-        const d=e.data;
-        // Messages caméra WebRTC côté display
-        if(d.type==='cam_offer_sdp'){
-          // Créer RTCPeerConnection pour recevoir le flux caméra
-          if(camRtcPc){try{camRtcPc.close();}catch(err){}}
-          camRtcPc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-          camRtcPc.ontrack=ev=>showCamOnDisplay(ev.streams[0]);
-          camRtcPc.onicecandidate=ev=>{
-            if(ev.candidate&&e.source)
-              try{e.source.postMessage({wsc:true,type:'cam_ice_answer',candidate:ev.candidate.toJSON()},'*');}catch(err){}
-          };
-          camRtcPc.setRemoteDescription(new RTCSessionDescription(d.sdp)).then(()=>camRtcPc.createAnswer()).then(ans=>{
-            camRtcPc.setLocalDescription(ans);
-            try{e.source.postMessage({wsc:true,type:'cam_answer',sdp:ans},'*');}catch(err){}
-          });
-        } else if(d.type==='cam_ice'){
-          if(camRtcPc&&d.candidate)camRtcPc.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(()=>{});
-        } else if(d.type==='cam_stop'){
-          hideCamOnDisplay();
-        } else {
-          try{handleMqttMsg(d);}catch(err){}
-        }
-      }
-    });
-    // Peer mode : URL ?peer=XXXXX ou localStorage
-    const peerTarget=p.get('peer')||localStorage.getItem('peerTargetId');
-    if(peerTarget){
-      connMode='peer';
-      localStorage.setItem('connMode','peer');
-      setTimeout(()=>connectToPeer(peerTarget),800);
-    } else if(p.has('mqtt')||connMode==='mqtt'){
-      // MQTT : utiliser le salon passé en param ?room=XXX sinon celui en localStorage
-      const room=p.get('room')||localStorage.getItem('mqttRoom');
-      if(room){setTimeout(()=>mqttConnect(room),600);}
-      else{document.getElementById('peer-entry-overlay').classList.remove('hidden');}
-    } else if(connMode==='peer'){
-      // Afficher overlay saisie code
-      document.getElementById('peer-entry-overlay').classList.remove('hidden');
-    } else {
-      // Mode LOCAL : BroadcastChannel déjà actif, afficher message d'attente
-      showDispTag('En attente de la régie…');
-    }
-    // Plein écran automatique
-    const goFS=()=>{
-      (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||
-       document.documentElement.mozRequestFullScreen||document.documentElement.msRequestFullscreen)
-      ?.call(document.documentElement,{navigationUI:'hide'}).catch(()=>{});
-    };
-    goFS();
-    document.addEventListener('click',goFS,{once:true});
-  } else {
-    // Mode régie
-    try{localChannel=new BroadcastChannel('wsc_local');}catch(e){}
-
-    // Écouter les réponses caméra WebRTC venant de la fenêtre display
-    window.addEventListener('message',e=>{
-      if(e.data&&e.data.wsc){
-        const d=e.data;
-        if(d.type==='cam_answer') handleCamAnswer(d);
-        else if(d.type==='cam_ice_answer') handleCamIceAnswer(d);
-      }
-    });
-
-    if(connMode==='peer'){
-      const savedId=localStorage.getItem('myPeerId');
-      if(savedId){myPeerId=savedId;}
-      setTimeout(()=>initPeer(),800);
-    }
-    updateConnBadge();
-  }
-}
-
 function renderDisplayVerse(payload){
   const vEl=document.getElementById('disp-verse');
   const rEl=document.getElementById('disp-ref');
