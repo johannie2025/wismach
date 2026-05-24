@@ -633,27 +633,29 @@ input,textarea,select{font-family:'Inter',sans-serif;}
       <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">Même machine — 2e écran via câble HDMI/VGA.<br>Utilise <strong style="color:var(--text);">BroadcastChannel</strong>, zéro réseau.</div>
       <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;">URL pour la fenêtre TV (ouvrir dans Chrome) :</div>
       <div style="display:flex;gap:6px;margin-bottom:4px;">
-        <input id="local-url-disp" class="modal-input" readonly style="font-family:monospace;font-size:.62rem;margin:0;"/>
-        <button class="btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('local-url-disp').value);showToast('Copié','success',1500)">📋</button>
+        <input id="local-url-disp" class="modal-input" readonly style="font-family:monospace;font-size:.62rem;margin:0;" placeholder="Chargement…"/>
+        <button class="btn-primary" onclick="copyPeerUrl()">📋</button>
       </div>
       <div style="font-size:.62rem;color:var(--muted);">La 2e fenêtre passe automatiquement en plein écran.</div>
     </div>
 
     <!-- ── PAIR (PeerJS WebRTC) ── -->
     <div id="cmp-peer" class="hidden">
-      <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">P2P WiFi — PC/phone → TV Box sur le même réseau.<br>Nécessite internet <em>une fois</em> pour l'appairage.</div>
-      <div class="sec-title" style="margin-bottom:5px;">MON CODE RÉGIE</div>
+      <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">Transport via serveur WebSocket — fonctionne sur tous les réseaux.</div>
+      <div class="sec-title" style="margin-bottom:5px;">CODE SALLE RÉGIE</div>
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;">
-        <div id="my-peer-id" class="peer-code-box" style="font-family:monospace;font-size:1.15rem;letter-spacing:.18em;color:var(--gold);background:var(--bg3);border:1px solid var(--gold);border-radius:7px;padding:8px 14px;text-align:center;flex:1;">…</div>
+        <div id="my-peer-id" style="font-family:monospace;font-size:1.15rem;letter-spacing:.18em;color:var(--gold);background:var(--bg3);border:1px solid var(--gold);border-radius:7px;padding:8px 14px;text-align:center;flex:1;">—</div>
         <div style="display:flex;flex-direction:column;gap:4px;">
           <button class="btn-primary" style="font-size:.65rem;padding:5px 9px;" onclick="copyPeerUrl()">📋 URL TV</button>
-          <button class="btn-secondary" style="font-size:.65rem;padding:5px 9px;" onclick="initPeer()">🔄</button>
+          <button class="btn-secondary" style="font-size:.65rem;padding:5px 9px;" onclick="openDisplayPopup()">🖥 Ouvrir</button>
         </div>
       </div>
-      <div style="font-size:.62rem;color:var(--muted);margin-bottom:10px;">La TV ouvre l'URL copiée → connexion automatique.<br>Ou entrez le code ci-dessous depuis la TV :</div>
-      <div class="sec-title" style="margin-bottom:5px;">CONNECTER TV MANUELLEMENT</div>
-      <input id="peer-target-input" class="modal-input" type="text" placeholder="CODE de la régie" style="font-family:monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
-      <button class="btn-primary" style="width:100%;" onclick="applyPeerConnect()">Connecter cette TV</button>
+      <div style="font-size:.62rem;color:var(--muted);margin-bottom:10px;">Ouvrez l'URL sur autant d'écrans que voulu. Tous reçoivent la projection.</div>
+      <div class="sec-title" style="margin-bottom:5px;">CHANGER DE SALLE</div>
+      <div style="display:flex;gap:6px;">
+        <input id="peer-target-input" class="modal-input" type="text" placeholder="PROJ_XXXXX" style="font-family:monospace;text-transform:uppercase;margin:0;flex:1;" oninput="this.value=this.value.toUpperCase()"/>
+        <button class="btn-primary" onclick="applyPeerConnect()">✔</button>
+      </div>
       <div id="peer-clients-info" style="font-size:.62rem;color:var(--muted);margin-top:8px;"></div>
     </div>
 
@@ -900,12 +902,23 @@ function updateConnBadge(){const rid=document.getElementById('room-id-display');
 function openDisplayPopup(){window.open(location.origin+'?display&room='+encodeURIComponent(wsRoom),'_blank','width=1280,height=720,menubar=no,toolbar=no');}
 function copyPeerUrl(){const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);navigator.clipboard.writeText(url).then(()=>showToast('✅ '+url,'success',4000)).catch(()=>prompt('URL display:',url));}
 function showRoomModal(){
+  const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);
   const ri=document.getElementById('room-input');if(ri)ri.value=wsRoom;
-  const lu=document.getElementById('local-url-disp');if(lu)lu.value=location.origin+'?display&room='+encodeURIComponent(wsRoom);
-  const mpi=document.getElementById('my-peer-id');if(mpi)mpi.textContent=wsRoom;
+  const lu=document.getElementById('local-url-disp');if(lu)lu.value=url;
+  const mpi=document.getElementById('my-peer-id');if(mpi)mpi.textContent=wsRoom||'—';
   const mcc=document.getElementById('modal-current-room');if(mcc)mcc.textContent=wsRoom;
-  setConnMode(localStorage.getItem('connMode')||'local');
+  const pti=document.getElementById('peer-target-input');if(pti)pti.value=wsRoom;
+  setConnMode('peer'); // Toujours afficher le panneau WebSocket
   openModal('room-modal');
+}
+function applyPeerConnect(){
+  const v=(document.getElementById('peer-target-input').value||'').trim().toUpperCase();
+  const room=v||wsRoom;
+  wsConnect(room,'control');
+  wsRoom=room; localStorage.setItem('wsRoom',room);
+  updateConnBadge();
+  closeModal('room-modal');
+  showToast('✅ Salle: '+room,'success');
 }
 function applyPeerEntry(){const id=document.getElementById('peer-entry-input').value.trim().toUpperCase();if(!id)return;document.getElementById('peer-entry-overlay').classList.add('hidden');switchToDisplay();wsConnect(id,'display');}
 function setConnMode(m){
