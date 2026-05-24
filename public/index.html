@@ -629,38 +629,36 @@ input,textarea,select{font-family:'Inter',sans-serif;}
     </div>
 
     <!-- ── LOCAL ── -->
-    <div id="cmp-local">
+    <div id="cmp-local" style="display:none">
       <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">Même machine — 2e écran via câble HDMI/VGA.<br>Utilise <strong style="color:var(--text);">BroadcastChannel</strong>, zéro réseau.</div>
       <div style="font-size:.68rem;color:var(--muted);margin-bottom:4px;">URL pour la fenêtre TV (ouvrir dans Chrome) :</div>
       <div style="display:flex;gap:6px;margin-bottom:4px;">
-        <input id="local-url-disp" class="modal-input" readonly style="font-family:monospace;font-size:.62rem;margin:0;" placeholder="Chargement…"/>
-        <button class="btn-primary" onclick="copyPeerUrl()">📋</button>
+        <input id="local-url-disp" class="modal-input" readonly style="font-family:monospace;font-size:.62rem;margin:0;"/>
+        <button class="btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('local-url-disp').value);showToast('Copié','success',1500)">📋</button>
       </div>
       <div style="font-size:.62rem;color:var(--muted);">La 2e fenêtre passe automatiquement en plein écran.</div>
     </div>
 
     <!-- ── PAIR (PeerJS WebRTC) ── -->
-    <div id="cmp-peer" class="hidden">
-      <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">Transport via serveur WebSocket — fonctionne sur tous les réseaux.</div>
-      <div class="sec-title" style="margin-bottom:5px;">CODE SALLE RÉGIE</div>
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;">
-        <div id="my-peer-id" style="font-family:monospace;font-size:1.15rem;letter-spacing:.18em;color:var(--gold);background:var(--bg3);border:1px solid var(--gold);border-radius:7px;padding:8px 14px;text-align:center;flex:1;">—</div>
+    <div id="cmp-peer">
+      <div class="sec-title" style="margin-bottom:8px;">CODE SALLE RÉGIE</div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+        <div id="my-peer-id" style="font-family:monospace;font-size:1.3rem;letter-spacing:.2em;color:var(--gold);background:var(--bg3);border:2px solid var(--gold);border-radius:7px;padding:10px 14px;text-align:center;flex:1;">—</div>
         <div style="display:flex;flex-direction:column;gap:4px;">
-          <button class="btn-primary" style="font-size:.65rem;padding:5px 9px;" onclick="copyPeerUrl()">📋 URL TV</button>
-          <button class="btn-secondary" style="font-size:.65rem;padding:5px 9px;" onclick="openDisplayPopup()">🖥 Ouvrir</button>
+          <button class="btn-primary" style="font-size:.65rem;padding:6px 10px;" onclick="copyPeerUrl()">📋 URL TV</button>
+          <button class="btn-secondary" style="font-size:.65rem;padding:6px 10px;" onclick="openDisplayPopup()">🖥 Ouvrir</button>
         </div>
       </div>
-      <div style="font-size:.62rem;color:var(--muted);margin-bottom:10px;">Ouvrez l'URL sur autant d'écrans que voulu. Tous reçoivent la projection.</div>
+      <div id="peer-clients-info" style="font-size:.65rem;color:var(--gold);margin-bottom:10px;"></div>
       <div class="sec-title" style="margin-bottom:5px;">CHANGER DE SALLE</div>
       <div style="display:flex;gap:6px;">
         <input id="peer-target-input" class="modal-input" type="text" placeholder="PROJ_XXXXX" style="font-family:monospace;text-transform:uppercase;margin:0;flex:1;" oninput="this.value=this.value.toUpperCase()"/>
         <button class="btn-primary" onclick="applyPeerConnect()">✔</button>
       </div>
-      <div id="peer-clients-info" style="font-size:.62rem;color:var(--muted);margin-top:8px;"></div>
     </div>
 
     <!-- ── MQTT ── -->
-    <div id="cmp-mqtt" class="hidden">
+    <div id="cmp-mqtt" style="display:none" class="hidden">
       <div style="font-size:.73rem;color:var(--muted);margin-bottom:10px;">Broker public (internet) ou Mosquitto local (IP).<br>TV Box et PC doivent avoir le <strong style="color:var(--text);">même salon</strong>.</div>
       <div class="sec-title" style="margin-bottom:5px;">SALON</div>
       <div style="display:flex;gap:6px;margin-bottom:4px;">
@@ -867,76 +865,336 @@ let S = {
 /* ═══════════════════════════════════════════
    MQTT
 ═══════════════════════════════════════════ */
-// ── WebSocket Transport ──
-let ws=null, wsRoom='', wsRole='control', wsReconnTimer=null, lastPayload=null;
-// ── Stubs compatibilité (variables référencées dans le code original) ──
-let connMode='local', mqttClient=null, mqttRoom='', mqttReconnTimer=null;
-let localChannel=null, displayPopup=null;
-let peerInst=null, peerConns=[], myPeerId='';
+// ── WebSocket ──
+let ws=null,wsRoom='',wsRole='control',wsReconnTimer=null,lastPayload=null;
+// Stubs compatibilité
+let mqttClient=null,mqttRoom='',mqttReconnTimer=null,localChannel=null,displayPopup=null;
+let connMode='ws',peerInst=null,peerConns=[],myPeerId='';
 
 function genRoom(){return 'PROJ_'+(Math.random().toString(36).slice(2,7)).toUpperCase();}
+
 function wsConnect(room,role){
   if(ws){try{ws.close();}catch(e){}}
-  wsRoom=room; wsRole=role; localStorage.setItem('wsRoom',room);
+  wsRoom=room;wsRole=role;localStorage.setItem('wsRoom',room);
   const proto=location.protocol==='https:'?'wss':'ws';
   ws=new WebSocket(proto+'://'+location.host);
-  ws.onopen=()=>ws.send(JSON.stringify({type:'join',room,role}));
+  ws.onopen=()=>{ws.send(JSON.stringify({type:'join',room,role}));};
   ws.onmessage=e=>{try{handleMsg(JSON.parse(e.data));}catch(err){}};
-  ws.onclose=()=>{setWsUi('disconnected');clearTimeout(wsReconnTimer);wsReconnTimer=setTimeout(()=>wsConnect(wsRoom,wsRole),3000);};
+  ws.onclose=()=>{clearTimeout(wsReconnTimer);wsReconnTimer=setTimeout(()=>wsConnect(wsRoom,wsRole),3000);};
   ws.onerror=()=>{};
 }
 function wsSend(p){if(ws&&ws.readyState===1)ws.send(JSON.stringify(p));}
 function handleMsg(p){
-  if(p.type==='joined'){setWsUi('connected');updateConnBadge();if(wsRole==='control')showToast('✅ Salle '+p.room,'success',2500);return;}
-  if(p.type==='displays_count'){const el=document.getElementById('peer-clients-info');if(el)el.textContent=p.count?'📺 '+p.count+' display(s)':'Aucun display';return;}
+  if(p.type==='joined'){
+    const dot=document.getElementById('mqtt-dot');if(dot)dot.style.background='var(--success)';
+    const lbl=document.getElementById('mqtt-label');if(lbl)lbl.textContent='Connecté';
+    updateConnBadge();
+    if(wsRole==='control')showToast('✅ Salle: '+p.room,'success',2500);
+    return;
+  }
+  if(p.type==='displays_count'){
+    const el=document.getElementById('peer-clients-info');
+    if(el)el.textContent=p.count?'📺 '+p.count+' display(s) connecté(s)':'Aucun display';
+    return;
+  }
   handleMqttMsg(p);
 }
-function setWsUi(state){
-  const dot=document.getElementById('mqtt-dot'),lbl=document.getElementById('mqtt-label');
-  const col={connected:'var(--success)',disconnected:'var(--danger)',local:'var(--warn)'};
-  const txt={connected:'Connecté',disconnected:'Déconnecté',local:'Local'};
-  if(dot)dot.style.background=col[state]||col.disconnected;
-  if(lbl)lbl.textContent=txt[state]||txt.disconnected;
+function mqttPub(sub,payload){
+  if(payload&&payload.type==='project')lastPayload=payload;
+  wsSend(payload);
 }
-function updateConnBadge(){const rid=document.getElementById('room-id-display');if(rid)rid.textContent=wsRoom||'—';}
-function openDisplayPopup(){window.open(location.origin+'?display&room='+encodeURIComponent(wsRoom),'_blank','width=1280,height=720,menubar=no,toolbar=no');}
-function copyPeerUrl(){const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);navigator.clipboard.writeText(url).then(()=>showToast('✅ '+url,'success',4000)).catch(()=>prompt('URL display:',url));}
-function showRoomModal(){
-  const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);
-  const ri=document.getElementById('room-input');if(ri)ri.value=wsRoom;
-  const lu=document.getElementById('local-url-disp');if(lu)lu.value=url;
-  const mpi=document.getElementById('my-peer-id');if(mpi)mpi.textContent=wsRoom||'—';
-  const mcc=document.getElementById('modal-current-room');if(mcc)mcc.textContent=wsRoom;
-  const pti=document.getElementById('peer-target-input');if(pti)pti.value=wsRoom;
-  setConnMode('peer'); // Toujours afficher le panneau WebSocket
-  openModal('room-modal');
+function updateConnBadge(){
+  const rid=document.getElementById('room-id-display');
+  if(rid)rid.textContent=wsRoom||'—';
 }
-function applyPeerConnect(){
-  const v=(document.getElementById('peer-target-input').value||'').trim().toUpperCase();
-  const room=v||wsRoom;
-  wsConnect(room,'control');
-  wsRoom=room; localStorage.setItem('wsRoom',room);
-  updateConnBadge();
-  closeModal('room-modal');
-  showToast('✅ Salle: '+room,'success');
-}
-function applyPeerEntry(){const id=document.getElementById('peer-entry-input').value.trim().toUpperCase();if(!id)return;document.getElementById('peer-entry-overlay').classList.add('hidden');switchToDisplay();wsConnect(id,'display');}
-function setConnMode(m){
-  connMode=m; localStorage.setItem('connMode',m);
-  ['local','peer','mqtt'].forEach(id=>{
-    const el=document.getElementById('cm-'+id);
-    if(el) el.classList.toggle('active',id===m);
-  });
-  ['local','peer','mqtt'].forEach(id=>{
-    const el=document.getElementById('cmp-'+id);
-    if(el) el.classList.toggle('hidden',id!==m);
-  });
-}
+function syncBrokerFromModal(){}
 function destroyPeer(){}
 function initPeer(){}
 function updatePeerClientsInfo(){}
 
-function mqttPub(sub,payload){if(payload&&payload.type==='project')lastPayload=payload;wsSend(payload);}
+/* ── CAMÉRA STATE ── */
+let camStreams={};     // id → {stream, peer, label}
+let camViewerConns={}; // id → RTCPeerConnection (côté régie/display qui reçoit)
+let camActive=false;
+let camLocalStream=null;
+let camPeerConns=[];   // RTCPeerConnection[] envoi vers régie
+
+function genRoom(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='PROJ_';for(let i=0;i<5;i++)r+=c[Math.floor(Math.random()*c.length)];return r;}
+
+function showRoomModal(){
+  const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);
+  const lu=document.getElementById('local-url-disp');if(lu)lu.value=url;
+  const mpi=document.getElementById('my-peer-id');if(mpi)mpi.textContent=wsRoom||'—';
+  const mcc=document.getElementById('modal-current-room');if(mcc)mcc.textContent=wsRoom;
+  const pti=document.getElementById('peer-target-input');if(pti)pti.value='';
+  openModal('room-modal');
+}
+function copyPeerUrl(){
+  const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);
+  navigator.clipboard.writeText(url).then(()=>showToast('✅ URL copiée','success',3000)).catch(()=>prompt('URL display:',url));
+}
+function openDisplayPopup(){
+  window.open(location.origin+'?display&room='+encodeURIComponent(wsRoom),'_blank','width=1280,height=720,menubar=no,toolbar=no');
+}
+function applyRoom(){
+  const v=(document.getElementById('room-input')||{}).value||'';
+  const room=v.trim().toUpperCase()||genRoom();
+  wsConnect(room,'control');updateConnBadge();closeModal('room-modal');
+}
+function applyPeerConnect(){
+  const v=(document.getElementById('peer-target-input')||{}).value||'';
+  const room=v.trim().toUpperCase()||wsRoom;
+  wsConnect(room,'control');updateConnBadge();closeModal('room-modal');
+}
+function applyPeerEntry(){
+  const id=(document.getElementById('peer-entry-input')||{}).value||'';
+  const room=id.trim().toUpperCase();
+  if(!room)return;
+  document.getElementById('peer-entry-overlay').classList.add('hidden');
+  switchToDisplay();
+  wsConnect(room,'display');
+}
+function setConnMode(m){}
+function syncBrokerFromModal(){}
+function destroyPeer(){}
+function initPeer(){}
+function updatePeerClientsInfo(){}
+
+/* ── CAMÉRA STATE ── */
+
+function genRoom(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='PROJ_';for(let i=0;i<5;i++)r+=c[Math.floor(Math.random()*c.length)];return r;}
+
+function mqttConnect(room){
+  if(mqttClient&&mqttClient.isConnected()){try{mqttClient.disconnect();}catch(e){}}
+  clearTimeout(mqttReconnTimer);
+  mqttRoom=room;
+  const cid='WSC_'+Math.random().toString(36).slice(2,10);
+  mqttClient=new Paho.MQTT.Client(S.settings.broker,Number(S.settings.port),'/mqtt',cid);
+  mqttClient.onConnectionLost=resp=>{
+    setMqttUi('disconnected');
+    if(resp.errorCode!==0) mqttReconnTimer=setTimeout(()=>mqttConnect(mqttRoom),4000);
+  };
+  mqttClient.onMessageArrived=msg=>{
+    try{handleMqttMsg(JSON.parse(msg.payloadString));}catch(e){}
+  };
+  setMqttUi('connecting');
+  const mqttPort=Number(S.settings.port);
+  mqttClient.connect({useSSL:mqttPort===8884||mqttPort===443||mqttPort===8883,keepAliveInterval:30,cleanSession:true,
+    onSuccess:()=>{
+      setMqttUi('connected');
+      mqttClient.subscribe(`wsc/${mqttRoom}/#`);
+      document.getElementById('room-id-display').textContent=mqttRoom;
+      showToast('✅ Connecté: '+mqttRoom,'success');
+    },
+    onFailure:err=>{
+      setMqttUi('disconnected');
+      mqttReconnTimer=setTimeout(()=>mqttConnect(mqttRoom),5000);
+    }
+  });
+}
+function mqttPub(sub,payload){
+  // 1. MQTT réseau
+  if(connMode==='mqtt'&&mqttClient&&mqttClient.isConnected()){
+    const msg=new Paho.MQTT.Message(JSON.stringify(payload));
+    msg.destinationName=`wsc/${mqttRoom}/${sub}`;
+    msg.retained=true;
+    mqttClient.send(msg);
+  }
+  // 2. WebRTC Peer (TV Box distante)
+  if(connMode==='peer') peerSend(payload);
+  // 3. BroadcastChannel (même machine, autre onglet/fenêtre)
+  if(localChannel){try{localChannel.postMessage(payload);}catch(e){}}
+  // 4. Si mode local et fenêtre display ouverte, forcer via postMessage direct
+  if(displayPopup&&!displayPopup.closed){
+    try{displayPopup.postMessage({wsc:true,...payload},'*');}catch(e){}
+  }
+  // 5. Camera stream : broadcaster le payload aux viewers caméra
+  camBroadcastData(payload);
+}
+function handleMqttMsg(p){
+  if(p.type==='project') renderDisplayVerse(p);
+  else if(p.type==='clear') renderDisplayClear();
+  else if(p.type==='bg') applyDisplayBg(p.bg);
+  else if(p.type==='lt') handleLtMsg(p);
+  else if(p.type==='logo_anim') playLogoAnimLocal();
+  else if(p.type==='tag') showDispTag(p.label);
+  // Caméra WebRTC
+  else if(p.type==='cam_offer'||p.type==='cam_offer_sdp') handleCamOffer(p);
+  else if(p.type==='cam_ice') handleCamIce(p);
+  else if(p.type==='cam_answer') handleCamAnswer(p);
+  else if(p.type==='cam_ice_answer') handleCamIceAnswer(p);
+  else if(p.type==='cam_stop') hideCamOnDisplay();
+}
+function setMqttUi(s){
+  const dot=document.getElementById('mqtt-dot');
+  const lbl=document.getElementById('mqtt-label');
+  dot.className='';
+  if(s==='connected'){dot.classList.add('connected');lbl.textContent=currentLang==='fr'?'Connecté':currentLang==='es'?'Conectado':'Connected';}
+  else if(s==='connecting'){dot.classList.add('connecting');lbl.textContent='…';}
+  else if(s==='local'){dot.style.background='var(--muted)';lbl.textContent='LOCAL';}
+  else{lbl.textContent=t('disconnected');}
+}
+
+/* ═══════════════════════════════════════════
+   CONNEXION — PEER P2P (PeerJS WebRTC)
+═══════════════════════════════════════════ */
+function peerSend(payload){
+  peerConns.forEach(c=>{if(c.open)try{c.send(payload);}catch(e){}});
+}
+function destroyPeer(){
+  if(peerInst){try{peerInst.destroy();}catch(e){}peerInst=null;}
+  peerConns=[];myPeerId='';
+}
+function initPeer(){
+  destroyPeer();
+  const id='WSC'+Math.random().toString(36).slice(2,8).toUpperCase();
+  peerInst=new Peer(id);
+  setMqttUi('connecting');
+  document.getElementById('my-peer-id').textContent='…';
+  peerInst.on('open',id=>{
+    myPeerId=id;
+    localStorage.setItem('myPeerId',id);
+    document.getElementById('my-peer-id').textContent=id;
+    setMqttUi('connected');
+    updateConnBadge();
+    showToast('🔗 Code: '+id,'success',4000);
+  });
+  peerInst.on('connection',conn=>{
+    peerConns.push(conn);
+    conn.on('close',()=>{peerConns=peerConns.filter(c=>c!==conn);updatePeerClientsInfo();});
+    conn.on('data',d=>{try{handleMqttMsg(d);}catch(e){}});
+    conn.on('error',()=>{peerConns=peerConns.filter(c=>c!==conn);});
+    updatePeerClientsInfo();
+    showToast('📺 TV connectée ('+peerConns.length+')','success');
+  });
+  peerInst.on('error',e=>{
+    setMqttUi('disconnected');
+    showToast('⚠ Peer: '+e.type,'error');
+  });
+}
+function connectToPeer(targetId){
+  if(!targetId)return;
+  localStorage.setItem('peerTargetId',targetId);
+  if(!peerInst||peerInst.destroyed){
+    peerInst=new Peer();
+    peerInst.on('open',()=>doConnect(targetId));
+    peerInst.on('error',e=>setMqttUi('disconnected'));
+  } else {
+    doConnect(targetId);
+  }
+}
+function doConnect(targetId){
+  setMqttUi('connecting');
+  const conn=peerInst.connect(targetId,{reliable:true});
+  conn.on('open',()=>{
+    peerConns.push(conn);
+    setMqttUi('connected');
+    showToast('✅ Connecté à '+targetId,'success');
+  });
+  conn.on('data',d=>{try{handleMqttMsg(d);}catch(e){}});
+  conn.on('close',()=>{
+    peerConns=peerConns.filter(c=>c!==conn);
+    setMqttUi('disconnected');
+    setTimeout(()=>connectToPeer(targetId),4000);
+  });
+  conn.on('error',()=>{
+    setMqttUi('disconnected');
+    setTimeout(()=>connectToPeer(targetId),4000);
+  });
+}
+function applyPeerConnect(){
+  const id=document.getElementById('peer-target-input').value.trim().toUpperCase();
+  if(!id)return;
+  connectToPeer(id);
+  closeModal('room-modal');
+}
+function applyPeerEntry(){
+  const id=document.getElementById('peer-entry-input').value.trim().toUpperCase();
+  if(!id)return;
+  document.getElementById('peer-entry-overlay').classList.add('hidden');
+  connectToPeer(id);
+}
+function copyPeerUrl(){
+  const base=location.href.split('?')[0];
+  let url;
+  if(connMode==='mqtt'){
+    url=`${base}?display&mqtt&room=${encodeURIComponent(mqttRoom)}`;
+  } else {
+    url=`${base}?display&peer=${myPeerId||''}`;
+  }
+  navigator.clipboard.writeText(url);
+  showToast('URL TV copiée','success',2000);
+}
+function updatePeerClientsInfo(){
+  const el=document.getElementById('peer-clients-info');
+  if(el) el.textContent=peerConns.length?`${peerConns.length} TV connectée(s)`:'Aucune TV connectée';
+}
+
+/* ═══════════════════════════════════════════
+   MODE CONNEXION
+═══════════════════════════════════════════ */
+const CONN_ICONS={local:'💻',peer:'🌐',mqtt:'📡'};
+const CONN_LABELS={local:'LOCAL',peer:'PAIR',mqtt:'MQTT'};
+function setConnMode(mode){
+  connMode=mode;
+  localStorage.setItem('connMode',mode);
+  // Update buttons
+  ['local','peer','mqtt'].forEach(m=>{
+    const b=document.getElementById('cm-'+m);
+    if(b) b.classList.toggle('active',m===mode);
+  });
+  // Show/hide panels
+  ['local','peer','mqtt'].forEach(m=>{
+    const p=document.getElementById('cmp-'+m);
+    if(p) p.classList.toggle('hidden',m!==mode);
+  });
+  updateConnBadge();
+  // Init
+  if(mode==='local'){
+    destroyPeer();
+    if(mqttClient)try{mqttClient.disconnect();}catch(e){}
+    if(!localChannel)try{localChannel=new BroadcastChannel('wsc_local');}catch(e){}
+    // LOCAL = en attente d'une fenêtre display, pas "connecté"
+    setMqttUi('local');
+  } else if(mode==='peer'){
+    if(mqttClient)try{mqttClient.disconnect();}catch(e){}
+    if(!localChannel)try{localChannel=new BroadcastChannel('wsc_local');}catch(e){}
+    if(!peerInst||peerInst.destroyed) initPeer();
+    else {document.getElementById('my-peer-id').textContent=myPeerId||'…';}
+  } else if(mode==='mqtt'){
+    destroyPeer();
+    const savedRoom=localStorage.getItem('mqttRoom')||genRoom();
+    mqttConnect(savedRoom);
+  }
+}
+function updateConnBadge(){
+  const icon=document.getElementById('conn-mode-icon');
+  const rid=document.getElementById('room-id-display');
+  const lbl=document.getElementById('conn-mode-label');
+  if(icon) icon.textContent=CONN_ICONS[connMode]||'🔌';
+  if(rid) rid.textContent=connMode==='peer'?(myPeerId||'…'):connMode==='mqtt'?(mqttRoom||'—'):'HDMI';
+  if(lbl) lbl.textContent=CONN_ICONS[connMode]+' '+CONN_LABELS[connMode];
+}
+function showRoomModal(){
+  // Sync MQTT fields
+  document.getElementById('modal-current-room').textContent=mqttRoom||'—';
+  const roomInput=document.getElementById('room-input');
+  if(roomInput) roomInput.value=mqttRoom||'';
+  const bm=document.getElementById('s-broker-m');
+  const pm=document.getElementById('s-port-m');
+  if(bm) bm.value=S.settings.broker||'broker.hivemq.com';
+  if(pm) pm.value=S.settings.port||8000;
+  // Sync local URL
+  const lu=document.getElementById('local-url-disp');
+  if(lu) lu.value=location.href.split('?')[0]+'?display';
+  // Sync peer panel
+  const mpi=document.getElementById('my-peer-id');
+  if(mpi) mpi.textContent=myPeerId||'(initialisation…)';
+  updatePeerClientsInfo();
+  // Activate correct mode
+  setConnMode(connMode);
+  openModal('room-modal');
+}
 function syncBrokerFromModal(){
   const b=document.getElementById('s-broker-m');
   const p=document.getElementById('s-port-m');
@@ -971,7 +1229,7 @@ function autoDetect(){
   const room=(p.get('room')||localStorage.getItem('wsRoom')||genRoom()).toUpperCase();
   wsRoom=room;
   localStorage.setItem('wsRoom',room);
-  updateConnBadge(); // afficher immédiatement sans attendre WS
+  updateConnBadge();
   if(p.has('display')||p.has('tv')){
     switchToDisplay();
     wsConnect(room,'display');
@@ -979,35 +1237,7 @@ function autoDetect(){
     wsConnect(room,'control');
   }
 }
-function syncBrokerFromModal(){
-  const b=document.getElementById('s-broker-m');
-  const p=document.getElementById('s-port-m');
-  if(b) S.settings.broker=b.value;
-  if(p) S.settings.port=+p.value||8000;
-  // Also sync main settings inputs
-  const sb=document.getElementById('s-broker');
-  const sp=document.getElementById('s-port');
-  if(sb) sb.value=S.settings.broker;
-  if(sp) sp.value=S.settings.port;
-}
 
-/* ═══════════════════════════════════════════
-   DISPLAY MODE
-═══════════════════════════════════════════ */
-function switchToDisplay(){
-  S.mode='display';
-  document.getElementById('control-mode').style.display='none';
-  document.getElementById('display-mode').classList.remove('hidden');
-  document.getElementById('btn-mode-ctrl').classList.remove('active');
-  document.getElementById('btn-mode-disp').classList.add('active');
-}
-function switchToControl(){
-  S.mode='control';
-  document.getElementById('display-mode').classList.add('hidden');
-  document.getElementById('control-mode').style.display='flex';
-  document.getElementById('btn-mode-disp').classList.remove('active');
-  document.getElementById('btn-mode-ctrl').classList.add('active');
-}
 function renderDisplayVerse(payload){
   const vEl=document.getElementById('disp-verse');
   const rEl=document.getElementById('disp-ref');
@@ -2528,9 +2758,9 @@ async function init(){
     if(camSec)camSec.style.display='block';
   }
 
-  // Init connexion WebSocket
   autoDetect();
-  // Keyboard shortcuts
+
+    // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
     if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();navNext();}
