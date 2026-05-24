@@ -891,6 +891,16 @@ function setWsUi(state){
   if(dot)dot.style.background=col[state]||col.disconnected;
   if(lbl)lbl.textContent=txt[state]||txt.disconnected;
 }
+function updateConnBadge(){const rid=document.getElementById('room-id-display');if(rid)rid.textContent=wsRoom||'—';}
+function openDisplayPopup(){window.open(location.origin+'?display&room='+encodeURIComponent(wsRoom),'_blank','width=1280,height=720,menubar=no,toolbar=no');}
+function copyPeerUrl(){const url=location.origin+'?display&room='+encodeURIComponent(wsRoom);navigator.clipboard.writeText(url).then(()=>showToast('✅ '+url,'success',4000)).catch(()=>prompt('URL display:',url));}
+function showRoomModal(){const ri=document.getElementById('room-input');if(ri)ri.value=wsRoom;const lu=document.getElementById('local-url-disp');if(lu)lu.value=location.origin+'?display&room='+encodeURIComponent(wsRoom);openModal('room-modal');}
+function applyPeerEntry(){const id=document.getElementById('peer-entry-input').value.trim().toUpperCase();if(!id)return;document.getElementById('peer-entry-overlay').classList.add('hidden');switchToDisplay();wsConnect(id,'display');}
+function setConnMode(m){}
+function destroyPeer(){}
+function initPeer(){}
+function updatePeerClientsInfo(){}
+
 function mqttPub(sub,payload){if(payload&&payload.type==='project')lastPayload=payload;wsSend(payload);}
 function syncBrokerFromModal(){
   const b=document.getElementById('s-broker-m');
