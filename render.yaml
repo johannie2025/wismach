@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: wiseprojection
+    env: node
+    buildCommand: npm install
+    startCommand: node server/server.js
+    plan: free
+    healthCheckPath: /ping
+    envVars:
+      - key: NODE_ENV
+        value: production

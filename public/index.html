@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr" id="html-root">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#060b12"/>
+<title>WiseProjection Pro — Wise Design</title>
+<meta name="description" content="Solution de projection et diffusion TV professionnelle pour églises — Wise Design"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f7fff'/><text x='50%' y='62%' text-anchor='middle' font-size='18' fill='white'>▶</text></svg>"/>
+<style>
+/* ══════════════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg0:#060b12;--bg1:#0d1520;--bg2:#131c2e;--bg3:#1a2540;--bg4:#21304f;
+  --border:#1e2d47;--border2:#2a3d5e;
+  --text:#e8eaf6;--text2:#9aa3c0;--text3:#5a6282;
+  --gold:#f5a623;--gold2:#fbbf24;
+  --blue:#4f7fff;--blue2:#3b6ff0;
+  --green:#2ecc71;--red:#e74c3c;--cyan:#06b6d4;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 32px rgba(0,0,0,.5);
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+}
+html,body{width:100%;height:100%;background:var(--bg0);color:var(--text);font-family:var(--font);overflow:hidden;}
+button{font-family:var(--font);cursor:pointer;}
+input,select,textarea{font-family:var(--font);}
+
+/* ══════════════════════════════════════════════════
+   MODES (pages virtuelles)
+══════════════════════════════════════════════════ */
+.mode{display:none;width:100%;height:100%;position:fixed;inset:0;overflow:hidden;}
+.mode.active{display:flex;flex-direction:column;}
+
+/* ══════════════════════════════════════════════════
+   LANDING PAGE
+══════════════════════════════════════════════════ */
+#mode-landing{overflow-y:auto;background:radial-gradient(ellipse at 20% 50%,rgba(79,127,255,.08),transparent 60%),var(--bg0);}
+.lp-wrap{min-height:100%;display:flex;flex-direction:column;}
+
+/* Header */
+.lp-header{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;position:sticky;top:0;background:rgba(6,11,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.05);z-index:50;}
+.lp-logo{font-size:1.4rem;font-weight:800;color:#fff;letter-spacing:-.02em;}
+.lp-logo span{color:var(--gold);}
+.lp-nav{display:flex;gap:24px;font-size:.85rem;color:var(--text2);}
+.lp-nav a{color:var(--text2);text-decoration:none;cursor:pointer;transition:color .2s;}
+.lp-nav a:hover{color:#fff;}
+.lp-actions{display:flex;gap:10px;}
+.btn-outline{padding:8px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:.85rem;transition:all .2s;}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);}
+.btn-primary{padding:8px 20px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:.85rem;font-weight:600;transition:all .2s;}
+.btn-primary:hover{background:var(--blue2);transform:translateY(-1px);}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;padding:10px 24px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(245,166,35,.25);}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(245,166,35,.35);}
+
+/* Hero */
+.lp-hero{padding:80px 40px 60px;text-align:center;max-width:900px;margin:0 auto;}
+.lp-badge{display:inline-block;padding:5px 14px;border-radius:20px;background:rgba(79,127,255,.12);border:1px solid rgba(79,127,255,.25);color:var(--blue);font-size:.72rem;font-weight:600;letter-spacing:.05em;margin-bottom:20px;}
+.lp-h1{font-size:clamp(2.2rem,5vw,4rem);font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:16px;}
+.lp-h1 .accent{color:transparent;background:linear-gradient(135deg,var(--gold),var(--blue));-webkit-background-clip:text;background-clip:text;}
+.lp-sub{font-size:1.05rem;color:var(--text2);max-width:600px;margin:0 auto 36px;line-height:1.65;}
+.lp-hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* Features */
+.lp-features{padding:60px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:1200px;margin:0 auto;width:100%;}
+.feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:all .25s;}
+.feat-card:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:var(--shadow);}
+.feat-icon{font-size:2rem;margin-bottom:14px;}
+.feat-title{font-size:.95rem;font-weight:700;margin-bottom:8px;}
+.feat-desc{font-size:.78rem;color:var(--text2);line-height:1.6;}
+
+/* Comparaison */
+.lp-compare{padding:60px 40px;max-width:900px;margin:0 auto;width:100%;}
+.compare-title{font-size:1.6rem;font-weight:800;text-align:center;margin-bottom:32px;}
+.compare-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.compare-table th{padding:12px 16px;background:var(--bg2);text-align:center;border:1px solid var(--border);}
+.compare-table th:first-child{text-align:left;}
+.compare-table td{padding:10px 16px;border:1px solid var(--border);text-align:center;color:var(--text2);}
+.compare-table td:first-child{text-align:left;font-weight:600;color:var(--text);}
+.compare-table tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+.compare-table th.us{background:linear-gradient(135deg,rgba(79,127,255,.2),rgba(79,127,255,.05));color:var(--gold);border-color:var(--blue);}
+.compare-table td.yes{color:var(--green);}
+.compare-table td.no{color:var(--text3);}
+.compare-table td.us-cell{color:var(--gold);font-weight:700;}
+
+/* Pricing */
+.lp-pricing{padding:60px 40px;max-width:1000px;margin:0 auto;width:100%;text-align:center;}
+.pricing-title{font-size:1.6rem;font-weight:800;margin-bottom:32px;}
+.pricing-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
+.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative;}
+.plan-card.featured{border-color:var(--blue);background:linear-gradient(160deg,rgba(79,127,255,.08),var(--bg2));}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;padding:3px 14px;border-radius:20px;font-size:.65rem;font-weight:700;white-space:nowrap;}
+.plan-name{font-size:1rem;font-weight:700;margin-bottom:6px;}
+.plan-price{font-size:2.2rem;font-weight:800;color:var(--gold);margin:10px 0 4px;}
+.plan-price span{font-size:.8rem;font-weight:400;color:var(--text2);}
+.plan-desc{font-size:.75rem;color:var(--text2);margin-bottom:18px;line-height:1.5;}
+.plan-feats{list-style:none;text-align:left;font-size:.78rem;margin-bottom:22px;}
+.plan-feats li{padding:5px 0;border-bottom:1px solid var(--border);color:var(--text2);}
+.plan-feats li::before{content:'✓ ';color:var(--green);}
+
+/* Footer */
+.lp-footer{padding:30px 40px;border-top:1px solid var(--border);text-align:center;font-size:.75rem;color:var(--text3);}
+
+/* ══════════════════════════════════════════════════
+   DISPLAY MODE (TV Box — écran noir)
+══════════════════════════════════════════════════ */
+#mode-display{background:#000;cursor:none;}
+
+/* ══════════════════════════════════════════════════
+   RÉGIE (Control Room)
+══════════════════════════════════════════════════ */
+#mode-control{background:var(--bg0);}
+
+/* Topbar */
+.ctrl-topbar{
+  height:52px;display:flex;align-items:center;gap:10px;
+  padding:0 16px;background:var(--bg1);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:20;
+}
+.ctrl-logo{font-size:.85rem;font-weight:800;color:#fff;white-space:nowrap;}
+.ctrl-logo span{color:var(--gold);}
+.ctrl-spacer{flex:1;}
+.pair-badge{
+  display:flex;align-items:center;gap:6px;padding:5px 12px;
+  border-radius:8px;background:var(--bg3);border:1px solid var(--border2);
+  font-family:monospace;font-size:.9rem;color:var(--gold);cursor:pointer;
+  transition:all .2s;
+}
+.pair-badge:hover{border-color:var(--blue);background:var(--bg4);}
+.pair-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background .3s;}
+.pair-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+.ctrl-btn{
+  padding:6px 12px;border-radius:7px;border:none;
+  background:var(--bg3);color:var(--text2);font-size:.72rem;
+  transition:all .15s;border:1px solid var(--border);
+}
+.ctrl-btn:hover{background:var(--bg4);color:var(--text);}
+.ctrl-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.ctrl-btn.danger{background:rgba(231,76,60,.15);color:var(--red);border-color:rgba(231,76,60,.25);}
+
+/* Layout régie */
+.ctrl-body{flex:1;display:grid;grid-template-columns:220px 1fr 280px;overflow:hidden;min-height:0;}
+
+/* Sidebar */
+.ctrl-sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);}
+.stab{flex:1;padding:10px 4px;border:none;background:transparent;color:var(--text3);font-size:.65rem;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;}
+.stab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(245,166,35,.05);}
+.sidebar-content{flex:1;overflow-y:auto;padding:8px;}
+
+/* Centre */
+.ctrl-center{display:flex;flex-direction:column;overflow:hidden;background:var(--bg0);}
+.center-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg1);padding:0 8px;}
+.ctab{padding:10px 14px;border:none;background:transparent;color:var(--text3);font-size:.72rem;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.ctab.active{color:var(--text);border-bottom-color:var(--blue);}
+.center-panel{flex:1;overflow-y:auto;padding:12px;}
+
+/* Preview */
+.ctrl-preview{background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.prev-screen{
+  margin:12px;border-radius:10px;overflow:hidden;
+  background:#000;aspect-ratio:16/9;position:relative;
+  border:2px solid var(--border2);
+}
+.prev-screen-lbl{position:absolute;bottom:6px;right:8px;font-size:.55rem;color:rgba(255,255,255,.35);}
+
+/* Actions */
+.ctrl-actions{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.act-btn{
+  padding:10px;border-radius:8px;border:none;font-size:.8rem;font-weight:600;
+  cursor:pointer;transition:all .15s;width:100%;
+}
+.act-project{background:linear-gradient(135deg,var(--green),#27ae60);color:#fff;}
+.act-clear{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.act-project:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(46,204,113,.3);}
+
+/* Versets */
+.verse-row{
+  padding:7px 10px;border-radius:7px;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;margin-bottom:2px;
+}
+.verse-row:hover{background:var(--bg3);border-color:var(--border);}
+.verse-row.selected{background:rgba(79,127,255,.12);border-color:rgba(79,127,255,.35);}
+.verse-num{font-size:.6rem;color:var(--text3);margin-bottom:2px;}
+.verse-text{font-size:.75rem;color:var(--text);line-height:1.4;}
+
+/* Chants / strophes */
+.song-item,.strophe-row{
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;margin-bottom:3px;
+}
+.song-item:hover,.strophe-row:hover{background:var(--bg3);}
+.song-item.active,.strophe-row.active{background:rgba(245,166,35,.1);border-color:rgba(245,166,35,.25);}
+
+/* Playlist */
+.pl-item{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;
+  cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .15s;
+}
+.pl-item:hover{background:var(--bg3);}
+.pl-item.active{background:rgba(79,127,255,.1);border-color:rgba(79,127,255,.3);}
+.pl-del{margin-left:auto;color:var(--text3);font-size:.7rem;cursor:pointer;opacity:0;}
+.pl-item:hover .pl-del{opacity:1;}
+
+/* LT / Overlays */
+.lt-form{display:flex;flex-direction:column;gap:8px;}
+.lt-input{
+  padding:8px 10px;border-radius:7px;border:1px solid var(--border);
+  background:var(--bg3);color:var(--text);font-size:.8rem;
+}
+.lt-input:focus{outline:none;border-color:var(--blue);}
+
+/* Bg presets */
+.bg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+.bg-swatch{
+  aspect-ratio:16/9;border-radius:6px;cursor:pointer;border:2px solid transparent;
+  transition:all .15s;position:relative;overflow:hidden;
+}
+.bg-swatch.active{border-color:var(--gold);}
+.bg-swatch:hover{transform:scale(1.05);}
+
+/* Modals */
+.modal-wrap{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;
+  align-items:center;justify-content:center;
+}
+.modal-wrap.open{display:flex;}
+.modal-box{
+  background:var(--bg2);border-radius:16px;border:1px solid var(--border2);
+  width:460px;max-width:95vw;padding:26px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:18px;}
+.modal-input{
+  width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text);font-size:.85rem;margin-bottom:10px;
+}
+.modal-input:focus{outline:none;border-color:var(--blue);}
+
+/* Toast */
+#toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;}
+.toast{
+  padding:10px 16px;border-radius:10px;font-size:.8rem;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);animation:toast-in .3s ease;
+  backdrop-filter:blur(8px);max-width:300px;
+}
+.toast.success{background:rgba(46,204,113,.9);color:#fff;}
+.toast.error{background:rgba(231,76,60,.9);color:#fff;}
+.toast.info{background:rgba(79,127,255,.9);color:#fff;}
+.toast.warn{background:rgba(245,166,35,.9);color:#000;}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Pair overlay */
+#pair-overlay{
+  position:fixed;inset:0;background:var(--bg0);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:24px;
+}
+#pair-overlay.hidden{display:none;}
+.pair-logo-big{font-size:4rem;text-align:center;}
+.pair-title-big{font-size:2rem;font-weight:800;color:#fff;text-align:center;}
+.pair-sub{font-size:.9rem;color:var(--text2);text-align:center;max-width:400px;}
+.pair-code-display{
+  font-family:monospace;font-size:3rem;font-weight:900;letter-spacing:.3em;
+  color:var(--gold);text-align:center;
+  text-shadow:0 0 40px rgba(245,166,35,.3);
+}
+.pair-code-input{
+  width:100%;max-width:280px;padding:14px 18px;border-radius:12px;
+  border:2px solid var(--border2);background:var(--bg3);color:#fff;
+  font-size:1.6rem;font-family:monospace;text-align:center;letter-spacing:.25em;
+  outline:none;font-weight:700;
+}
+.pair-code-input:focus{border-color:var(--gold);}
+.pair-or{color:var(--text3);font-size:.8rem;}
+.pair-connect-btn{
+  width:100%;max-width:280px;padding:14px;border-radius:12px;border:none;
+  background:var(--gold);color:#000;font-size:1rem;font-weight:700;cursor:pointer;
+  transition:all .2s;
+}
+.pair-connect-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(245,166,35,.3);}
+
+/* Responsive mobile */
+@media(max-width:768px){
+  .ctrl-body{grid-template-columns:1fr;}
+  .ctrl-sidebar,.ctrl-preview{display:none;}
+  .lp-header{padding:14px 20px;}
+  .lp-hero{padding:50px 20px 40px;}
+  .lp-features,.lp-compare,.lp-pricing{padding:40px 20px;}
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     MODE LANDING (page d'accueil)
+══════════════════════════════════════════════════ -->
+<div id="mode-landing" class="mode">
+  <div class="lp-wrap">
+    <header class="lp-header">
+      <div class="lp-logo">Wise<span>Projection</span></div>
+      <nav class="lp-nav">
+        <a onclick="App.scrollTo('features')">Fonctionnalités</a>
+        <a onclick="App.scrollTo('compare')">Comparaison</a>
+        <a onclick="App.scrollTo('pricing')">Tarifs</a>
+      </nav>
+      <div class="lp-actions">
+        <button class="btn-outline" onclick="App.launchDemo()">Démo</button>
+        <button class="btn-primary" onclick="App.setMode('control')">Lancer la Régie</button>
+      </div>
+    </header>
+
+    <section class="lp-hero">
+      <div class="lp-badge">✦ Studio TV Professionnel · Wise Design</div>
+      <h1 class="lp-h1">La Projection <span class="accent">Pro</span><br/>pour votre Église</h1>
+      <p class="lp-sub">Versets, chants, annonces, caméras WebRTC et diffusion multi-écrans — tout en un seul fichier HTML, 100% hors-ligne, avec contrôle depuis votre téléphone.</p>
+      <div class="lp-hero-btns">
+        <button class="btn-gold" onclick="App.setMode('control')">▶ Ouvrir la Régie</button>
+        <button class="btn-outline" onclick="App.setMode('display')">📺 Mode Display TV</button>
+        <button class="btn-outline" onclick="App.setMode('remote')">📱 Télécommande</button>
+      </div>
+    </section>
+
+    <section class="lp-features" id="features">
+      <div class="feat-card"><div class="feat-icon">📺</div><div class="feat-title">Display Android TV Box</div><div class="feat-desc">Écran noir zéro-défaut avec compositing 4 couches GPU-accéléré. Transitions Hollywood (fade, zoom, wipe, blur).</div></div>
+      <div class="feat-card"><div class="feat-icon">📡</div><div class="feat-title">Appairage Code 6 Chiffres</div><div class="feat-desc">Synchronisation WebSocket temps réel &lt;100ms. Connectez autant d'écrans que voulu avec un simple code.</div></div>
+      <div class="feat-card"><div class="feat-icon">📱</div><div class="feat-title">Télécommande Blind-Tap</div><div class="feat-desc">Votre téléphone devient un pavé tactile géant. Tap droit = suivant, gauche = précédent. Zéro charge cognitive.</div></div>
+      <div class="feat-card"><div class="feat-icon">📖</div><div class="feat-title">Bibles Multi-versions</div><div class="feat-desc">LSG, KJV, RVR1960, NVI, NIV et plus. Téléchargement une fois, disponibles 100% hors-ligne via IndexedDB.</div></div>
+      <div class="feat-card"><div class="feat-icon">🎵</div><div class="feat-title">Chants & Lyrics</div><div class="feat-desc">Ajoutez vos chants avec accords. Navigation strophe par strophe depuis la télécommande ou le PC.</div></div>
+      <div class="feat-card"><div class="feat-icon">📷</div><div class="feat-title">Caméra WebRTC</div><div class="feat-desc">Le flux caméra de votre téléphone est retransmis en temps réel sur l'écran display via WebRTC P2P.</div></div>
+    </section>
+
+    <section class="lp-compare" id="compare">
+      <h2 class="compare-title">WiseProjection vs. La Concurrence</h2>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Fonctionnalité</th>
+            <th class="us">WiseProjection</th>
+            <th>ProPresenter</th>
+            <th>Holyrics</th>
+            <th>EasyWorship</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>100% Hors-ligne</td><td class="us-cell">✅</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+          <tr><td>Contrôle Mobile</td><td class="us-cell">✅ Native</td><td class="no">Partiel</td><td class="no">Non</td><td class="no">Non</td></tr>
+          <tr><td>Appairage TV Box</td><td class="us-cell">✅ Code 6 chiffres</td><td class="no">Non</td><td class="no">Non</td><td class="no">Non</td></tr>
+          <tr><td>WebRTC Caméra</td><td class="us-cell">✅ Intégré</td><td class="no">Non</td><td class="no">Non</td><td class="no">Non</td></tr>
+          <tr><td>Déploiement</td><td class="us-cell">Fichier HTML</td><td class="no">Logiciel lourds</td><td class="no">Logiciel lourd</td><td class="no">Logiciel lourd</td></tr>
+          <tr><td>Coût annuel</td><td class="us-cell">Gratuit / Pro</td><td class="no">~699 $/an</td><td class="no">~120 $/an</td><td class="no">~200 $/an</td></tr>
+          <tr><td>Afrique / Mobile Money</td><td class="us-cell">✅ Intégré</td><td class="no">Non</td><td class="no">Non</td><td class="no">Non</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="lp-pricing" id="pricing">
+      <h2 class="pricing-title">Choisissez votre Plan</h2>
+      <div class="pricing-cards">
+        <div class="plan-card">
+          <div class="plan-name">Gratuit</div>
+          <div class="plan-price">0 <span>XAF/mois</span></div>
+          <div class="plan-desc">Idéal pour petites assemblées</div>
+          <ul class="plan-feats">
+            <li>1 écran display</li>
+            <li>Bibles & chants</li>
+            <li>Appairage 1 télécommande</li>
+            <li>Stockage local</li>
+          </ul>
+          <button class="btn-primary" style="width:100%;" onclick="App.setMode('control')">Commencer</button>
+        </div>
+        <div class="plan-card featured">
+          <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
+          <div class="plan-name">Pro Église</div>
+          <div class="plan-price">15 000 <span>XAF/mois</span></div>
+          <div class="plan-desc">Pour assemblées en croissance</div>
+          <ul class="plan-feats">
+            <li>Écrans illimités</li>
+            <li>Caméra WebRTC</li>
+            <li>Multi-télécommandes</li>
+            <li>Bibles + packs langues locales</li>
+            <li>Support WhatsApp prioritaire</li>
+          </ul>
+          <button class="btn-gold" style="width:100%;" onclick="App.contact()">Souscrire via WhatsApp</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">Sur devis</div>
+          <div class="plan-desc">Réseau d'églises / Streaming TV</div>
+          <ul class="plan-feats">
+            <li>Tout Pro + branding complet</li>
+            <li>Streaming YouTube / Facebook</li>
+            <li>Dashboard multi-sites</li>
+            <li>Formation & installation</li>
+            <li>SLA garanti</li>
+          </ul>
+          <button class="btn-outline" style="width:100%;" onclick="App.contact()">Contacter Wise Design</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="lp-footer">
+      WiseProjection Pro · <strong>Wise Design</strong> · WhatsApp: <a href="https://wa.me/240555445514" style="color:var(--green);">+240 555 445 514</a> · © 2025
+    </footer>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODE DISPLAY (TV Box — écran de projection)
+══════════════════════════════════════════════════ -->
+<div id="mode-display" class="mode">
+  <!-- Le compositor injecte tout ici dynamiquement -->
+  <div id="wp-compositor-root"></div>
+
+  <!-- Overlay appairage display -->
+  <div id="display-pair-overlay" style="position:fixed;inset:0;background:#060b12;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+    <div style="font-size:3rem;">📺</div>
+    <div style="font-size:1.6rem;font-weight:800;color:#fff;">WiseProjection Display</div>
+    <div style="font-size:.9rem;color:rgba(255,255,255,.45);text-align:center;">Entrez le code de la régie</div>
+    <input id="display-code-input" type="tel" inputmode="numeric" maxlength="6"
+      style="width:200px;padding:14px 18px;border-radius:12px;border:2px solid rgba(245,166,35,.4);background:rgba(255,255,255,.06);color:#fff;font-size:2rem;font-family:monospace;text-align:center;letter-spacing:.25em;outline:none;font-weight:700;"
+      placeholder="000000"/>
+    <button onclick="Display.applyCode()"
+      style="width:200px;padding:14px;border-radius:12px;border:none;background:#f5a623;color:#000;font-size:1rem;font-weight:700;cursor:pointer;">
+      Connecter
+    </button>
+    <div style="font-size:.7rem;color:rgba(255,255,255,.25);margin-top:8px;">WiseProjection — Wise Design</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODE RÉGIE (Control Room)
+══════════════════════════════════════════════════ -->
+<div id="mode-control" class="mode">
+
+  <!-- Appairage overlay (si pas encore connecté) -->
+  <div id="pair-overlay" class="hidden">
+    <div class="pair-logo-big">📡</div>
+    <div class="pair-title-big">Wise<span style="color:var(--gold)">Projection</span></div>
+    <div class="pair-sub">Générez un code pour connecter vos écrans display et télécommandes</div>
+    <div class="pair-code-display" id="ctrl-pair-code">——————</div>
+    <div class="pair-or">— ou rejoindre une salle existante —</div>
+    <input id="ctrl-join-input" class="pair-code-input" type="tel" inputmode="numeric" maxlength="6" placeholder="000000"/>
+    <button class="pair-connect-btn" onclick="Control.applyCode()">Connecter</button>
+  </div>
+
+  <!-- Topbar -->
+  <div class="ctrl-topbar">
+    <div class="ctrl-logo">Wise<span>Projection</span></div>
+    <button class="ctrl-btn" onclick="App.setMode('landing')">⌂</button>
+    <div class="ctrl-spacer"></div>
+    <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">CODE:</span>
+    <div class="pair-badge" id="ctrl-badge" onclick="Control.showPairModal()">
+      <span class="pair-dot" id="ctrl-dot"></span>
+      <span id="ctrl-code-lbl" style="font-size:.9rem;letter-spacing:.1em;">——————</span>
+      <span style="font-size:.6rem;color:var(--text3);">▾</span>
+    </div>
+    <span id="ctrl-displays" style="font-size:.65rem;color:var(--text3);margin-left:6px;"></span>
+    <button class="ctrl-btn" onclick="App.setMode('remote')" title="Télécommande">📱</button>
+    <button class="ctrl-btn" onclick="App.setMode('display')" title="Display">📺</button>
+    <button class="ctrl-btn danger" onclick="Control.clear()">⬛ Noir</button>
+  </div>
+
+  <!-- Corps régie -->
+  <div class="ctrl-body">
+
+    <!-- SIDEBAR -->
+    <div class="ctrl-sidebar">
+      <div class="sidebar-tabs">
+        <button class="stab active" id="stab-at" onclick="Control.switchSideTab('at')">AT</button>
+        <button class="stab" id="stab-nt" onclick="Control.switchSideTab('nt')">NT</button>
+        <button class="stab" id="stab-ch" onclick="Control.switchSideTab('ch')">Ch.</button>
+      </div>
+      <div class="sidebar-content" id="sidebar-content">
+        <div style="padding:8px;font-size:.72rem;color:var(--text3);">Chargement des bibles…</div>
+      </div>
+    </div>
+
+    <!-- CENTRE -->
+    <div class="ctrl-center">
+      <div class="center-tabs">
+        <button class="ctab active" id="ctab-verses" onclick="Control.switchCenterTab('verses')">📖 Versets</button>
+        <button class="ctab" id="ctab-lyrics" onclick="Control.switchCenterTab('lyrics')">🎵 Chants</button>
+        <button class="ctab" id="ctab-announce" onclick="Control.switchCenterTab('announce')">📢 Annonces</button>
+        <button class="ctab" id="ctab-playlist" onclick="Control.switchCenterTab('playlist')">📋 Playlist</button>
+        <button class="ctab" id="ctab-bibles" onclick="Control.switchCenterTab('bibles')">📥 Bibles</button>
+        <button class="ctab" id="ctab-bg" onclick="Control.switchCenterTab('bg')">🖼 Fond</button>
+        <button class="ctab" id="ctab-lt" onclick="Control.switchCenterTab('lt')">📝 LT</button>
+      </div>
+
+      <!-- Panel versets -->
+      <div class="center-panel" id="panel-verses">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div id="chapter-title" style="font-size:.85rem;font-weight:700;">—</div>
+          <input type="search" id="search-input" placeholder="Rechercher…" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:.72rem;width:160px;" oninput="Control.onSearch(this.value)"/>
+        </div>
+        <div id="verse-list"></div>
+        <div id="search-results" class="hidden"></div>
+      </div>
+
+      <!-- Panel lyrics -->
+      <div class="center-panel hidden" id="panel-lyrics">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:700;font-size:.85rem;">Chants</div>
+          <button class="ctrl-btn" onclick="Control.showAddSongModal()">+ Ajouter</button>
+        </div>
+        <div id="songs-list"></div>
+        <div id="strophe-panel" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+          <div style="font-size:.8rem;font-weight:700;margin-bottom:8px;" id="strophe-song-title"></div>
+          <div id="strophe-list"></div>
+        </div>
+      </div>
+
+      <!-- Panel annonces -->
+      <div class="center-panel hidden" id="panel-announce">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:700;font-size:.85rem;">Annonces</div>
+          <button class="ctrl-btn" onclick="Control.showAddAnnounceModal()">+ Ajouter</button>
+        </div>
+        <div id="announces-list"></div>
+      </div>
+
+      <!-- Panel playlist -->
+      <div class="center-panel hidden" id="panel-playlist">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:700;font-size:.85rem;">Playlist du Culte</div>
+          <button class="ctrl-btn danger" onclick="Control.clearPlaylist()">Vider</button>
+        </div>
+        <div id="playlist-area"></div>
+      </div>
+
+      <!-- Panel bibles -->
+      <div class="center-panel hidden" id="panel-bibles">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:12px;">📥 Télécharger des Bibles</div>
+        <div style="height:3px;background:var(--bg4);border-radius:2px;margin-bottom:12px;"><div id="dl-prog" style="height:100%;background:var(--blue);border-radius:2px;width:0;transition:width .3s;"></div></div>
+        <div id="bible-dl-list"></div>
+      </div>
+
+      <!-- Panel fond -->
+      <div class="center-panel hidden" id="panel-bg">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:12px;">🖼 Fond d'écran</div>
+        <div class="bg-grid" id="bg-presets"></div>
+        <div style="margin-top:12px;">
+          <label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:5px;">URL Image / Vidéo</label>
+          <div style="display:flex;gap:6px;">
+            <input id="bg-url-input" class="modal-input" style="margin:0;flex:1;" placeholder="https://…"/>
+            <button class="ctrl-btn" onclick="Control.applyBgUrl()">✔</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:5px;">Opacité overlay</label>
+          <input type="range" min="0" max="100" value="55" id="overlay-slider" style="width:100%;" oninput="Control.setOverlay(this.value)"/>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:5px;">Transition</label>
+          <select id="transition-select" class="modal-input" style="margin:0;" onchange="Control.setTransition(this.value)">
+            <option value="fade">Fondu</option>
+            <option value="slide_up">Glissement haut</option>
+            <option value="slide_dn">Glissement bas</option>
+            <option value="zoom">Zoom</option>
+            <option value="blur">Flou cinématique</option>
+            <option value="wipe">Balayage</option>
+            <option value="none">Instantané</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Panel LT -->
+      <div class="center-panel hidden" id="panel-lt">
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:12px;">📝 Lower Third / Overlays</div>
+        <div class="lt-form">
+          <label style="font-size:.72rem;color:var(--text2);">Titre</label>
+          <input id="lt-title" class="lt-input" placeholder="Nom de l'intervenant…"/>
+          <label style="font-size:.72rem;color:var(--text2);">Sous-titre</label>
+          <input id="lt-sub" class="lt-input" placeholder="Fonction / Ville…"/>
+          <button class="ctrl-btn active" onclick="Control.showLt()">Afficher LT</button>
+          <button class="ctrl-btn" onclick="WP&&WP.send&&WP.send({type:'lt',action:'hide'})">Masquer LT</button>
+          <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+          <label style="font-size:.72rem;color:var(--text2);">Tag / Toast</label>
+          <input id="tag-input" class="lt-input" placeholder="Message court…"/>
+          <button class="ctrl-btn" onclick="Control.showTag()">Envoyer Tag</button>
+          <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+          <label style="font-size:.72rem;color:var(--text2);">Alerte crèche</label>
+          <input id="alert-input" class="lt-input" placeholder="Badge parent N°…"/>
+          <button class="ctrl-btn danger" onclick="Control.showAlert()">🔔 Alerter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW + ACTIONS -->
+    <div class="ctrl-preview">
+      <div style="padding:10px 12px;font-size:.72rem;font-weight:600;border-bottom:1px solid var(--border);">Aperçu</div>
+      <div class="prev-screen" id="preview-screen">
+        <div id="wp-preview-root" style="position:absolute;inset:0;"></div>
+        <div class="prev-screen-lbl">DISPLAY</div>
+      </div>
+      <div style="padding:0 12px;flex:1;overflow-y:auto;">
+        <div style="font-size:.68rem;color:var(--text3);margin-bottom:6px;">SÉLECTION</div>
+        <div id="preview-main" style="font-size:.85rem;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px;">—</div>
+        <div id="preview-sub"  style="font-size:.72rem;color:var(--text2);">—</div>
+      </div>
+      <div class="ctrl-actions">
+        <button class="act-btn act-project" onclick="Control.projectCurrent()">▶ PROJETER</button>
+        <button class="act-btn act-clear"   onclick="Control.clear()">⬛ Écran Noir</button>
+        <button class="ctrl-btn" style="width:100%;" onclick="Control.logoAnim()">✨ Anim Logo</button>
+        <button class="ctrl-btn" style="width:100%;" onclick="Control.showLtBar()">📝 Lower Third</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODE TÉLÉCOMMANDE
+══════════════════════════════════════════════════ -->
+<div id="mode-remote" class="mode">
+  <div id="remote-root" style="width:100%;height:100%;"></div>
+</div>
+
+<!-- Toasts -->
+<div id="toast-wrap"></div>
+
+<!-- Modals (ajoutées dynamiquement) -->
+<div id="modal-add-song" class="modal-wrap">
+  <div class="modal-box">
+    <div class="modal-title">🎵 Ajouter un chant</div>
+    <input class="modal-input" id="song-title-input" placeholder="Titre du chant"/>
+    <input class="modal-input" id="song-author-input" placeholder="Auteur / Compositeur"/>
+    <textarea class="modal-input" id="song-lyrics-input" rows="8" placeholder="Paroles — séparez les strophes par une ligne vide" style="resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn-primary" onclick="Control.saveSong()">Sauvegarder</button>
+      <button class="btn-outline" onclick="Control.closeModal('modal-add-song')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-add-announce" class="modal-wrap">
+  <div class="modal-box">
+    <div class="modal-title">📢 Ajouter une annonce</div>
+    <input class="modal-input" id="ann-title-input" placeholder="Titre de l'annonce"/>
+    <textarea class="modal-input" id="ann-body-input" rows="5" placeholder="Corps du message" style="resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn-primary" onclick="Control.saveAnnounce()">Sauvegarder</button>
+      <button class="btn-outline" onclick="Control.closeModal('modal-add-announce')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pair" class="modal-wrap">
+  <div class="modal-box">
+    <div class="modal-title">📡 Code d'Appairage</div>
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px;">Partagez ce code avec vos écrans display et télécommandes. Il est valide tant que cette session est active.</div>
+    <div style="text-align:center;padding:20px;background:var(--bg3);border-radius:10px;margin-bottom:16px;">
+      <div style="font-size:.68rem;color:var(--text3);margin-bottom:6px;">CODE DE VOTRE SALLE</div>
+      <div id="modal-code-display" style="font-family:monospace;font-size:2.5rem;font-weight:900;letter-spacing:.3em;color:var(--gold);">——————</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:.72rem;color:var(--text2);display:block;margin-bottom:5px;">URL display à copier sur la TV</label>
+      <div style="display:flex;gap:6px;">
+        <input id="modal-display-url" class="modal-input" readonly style="margin:0;flex:1;font-size:.65rem;"/>
+        <button class="ctrl-btn" onclick="Control.copyDisplayUrl()">📋</button>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="Control.closeModal('modal-pair')">Fermer</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════ -->
+<script src="/js/sync.js"></script>
+<script src="/js/compositor.js"></script>
+<script src="/js/remote.js"></script>
+<script src="/js/db.js"></script>
+<script src="/js/control.js"></script>
+<script src="/js/app.js"></script>
+
+</body>
+</html>
